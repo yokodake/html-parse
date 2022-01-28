@@ -16,6 +16,7 @@ import           Text.HTML.Parser
 import           Text.HTML.ParserSpec
 import           Text.HTML.Tree
 import           Prelude
+import           Data.Set (toList, member)
 
 
 arbitraryTokenForest :: Gen (Forest Token)
@@ -30,12 +31,12 @@ arbitraryTokenTree = oneof
 
 
 validNonClosingOpen :: Gen Token
-validNonClosingOpen = TagOpen <$> elements nonClosing <*> arbitrary
+validNonClosingOpen = TagOpen <$> elements (toList nonClosing) <*> arbitrary
 
 validClosingOpen :: Gen Token
 validClosingOpen = do
     n <- validXmlTagName
-    let n' = if n `elem` nonClosing then "_" else n
+    let n' = if n `member` nonClosing then "_" else n
     TagOpen n' <$> arbitrary
 
 

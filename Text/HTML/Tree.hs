@@ -12,6 +12,7 @@ module Text.HTML.Tree
     ) where
 
 import           Data.Monoid
+import           Data.Set (Set, fromList, member, notMember)
 import           Data.Text (Text)
 import           Data.Tree
 import           Text.HTML.Parser
@@ -23,7 +24,7 @@ tokensToForest = f (PStack [] [])
     f (PStack ss []) [] = Right (reverse ss)
     f pstack []         = Left $ ParseTokenForestErrorBracketMismatch pstack Nothing
     f pstack (t : ts)   = case t of
-        TagOpen n _     -> if n `elem` nonClosing
+        TagOpen n _     -> if n `member` nonClosing
                              then f (pushFlatSibling t pstack) ts
                              else f (pushParent t pstack) ts
         TagSelfClose {} -> f (pushFlatSibling t pstack) ts
@@ -33,8 +34,10 @@ tokensToForest = f (PStack [] [])
         Comment _       -> f (pushFlatSibling t pstack) ts
         Doctype _       -> f (pushFlatSibling t pstack) ts
 
-nonClosing :: [Text]
-nonClosing = ["br", "hr", "img"]
+nonClosing :: Set Text
+nonClosing = fromList $ [ "area", "base", "br", "col", "embed", "hr", "img", "input"
+                        , "link", "meta", "param", "source", "track", "wbr"
+			                  ]
 
 data ParseTokenForestError =
     ParseTokenForestErrorBracketMismatch PStack (Maybe Token)
@@ -63,7 +66,7 @@ tokensFromForest :: Forest Token -> [Token]
 tokensFromForest = mconcat . fmap tokensFromTree
 
 tokensFromTree :: Tree Token -> [Token]
-tokensFromTree (Node o@(TagOpen n _) ts) | n `notElem` nonClosing
+tokensFromTree (Node o@(TagOpen n _) ts) | n `notMember` nonClosing
     = [o] <> tokensFromForest ts <> [TagClose n]
 tokensFromTree (Node t [])
     = [t]
